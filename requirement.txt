@@ -1,0 +1,5 @@
+# Python 3.12.5
+numpy>=1.26,<3
+PyYAML>=6.0,<7
+pytest>=8.0,<9
+matplotlib>=3.8,<4
