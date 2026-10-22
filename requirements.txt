@@ -1,5 +1,5 @@
-# Python 3.12.5
-numpy>=1.26,<3
-PyYAML>=6.0,<7
-pytest>=8.0,<9
-matplotlib>=3.8,<4
+# Python 3.14.6
+numpy==2.5.4
+PyYAML==6.0.3
+grpcio==1.84.0
+pydantic==2.14.1

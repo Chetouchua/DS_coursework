@@ -47,7 +47,7 @@ class ServerStub:
                 _registered_method=True)
         self.Wait = channel.unary_unary(
                 '/Server/Wait',
-                request_serializer=grpc__generated_dot_server__pb2.Task.SerializeToString,
+                request_serializer=grpc__generated_dot_server__pb2.WaitRequest.SerializeToString,
                 response_deserializer=grpc__generated_dot_server__pb2.Result.FromString,
                 _registered_method=True)
 
@@ -89,7 +89,7 @@ def add_ServerServicer_to_server(servicer, server):
             ),
             'Wait': grpc.unary_unary_rpc_method_handler(
                     servicer.Wait,
-                    request_deserializer=grpc__generated_dot_server__pb2.Task.FromString,
+                    request_deserializer=grpc__generated_dot_server__pb2.WaitRequest.FromString,
                     response_serializer=grpc__generated_dot_server__pb2.Result.SerializeToString,
             ),
     }
@@ -173,7 +173,7 @@ class Server:
             request,
             target,
             '/Server/Wait',
-            grpc__generated_dot_server__pb2.Task.SerializeToString,
+            grpc__generated_dot_server__pb2.WaitRequest.SerializeToString,
             grpc__generated_dot_server__pb2.Result.FromString,
             options,
             channel_credentials,

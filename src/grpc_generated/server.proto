@@ -4,7 +4,7 @@ syntax = "proto3";
 service Server {
     rpc Push(PushRequest) returns (Task) {};
     rpc Pull(PullRequest) returns (Task) {};
-    rpc Wait(Task) returns (Result) {};
+    rpc Wait(WaitRequest) returns (Result) {};
 }
 
 // Returned on async push and pull
@@ -19,7 +19,7 @@ message Range {
     uint64 end = 2;
 }
 message KeyList {
-    repeated uint64 key = 1;
+    repeated uint64 keys = 1;
 }
 
 // Push result
@@ -56,9 +56,12 @@ message PushRequest {
     CallOptions opts = 5;
 }
 
+message WaitRequest {
+    Task task = 1;
+    uint64 timeout_ms = 2;
+}
+
 message Result {
-    oneof result {
-        Values v = 1;
-        bool ack = 2;
-    }
+    Values v = 1;
+    bool ack = 2;
 }

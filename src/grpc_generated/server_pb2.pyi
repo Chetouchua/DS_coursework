@@ -23,10 +23,10 @@ class Range(_message.Message):
     def __init__(self, begin: _Optional[int] = ..., end: _Optional[int] = ...) -> None: ...
 
 class KeyList(_message.Message):
-    __slots__ = ("key",)
-    KEY_FIELD_NUMBER: _ClassVar[int]
-    key: _containers.RepeatedScalarFieldContainer[int]
-    def __init__(self, key: _Optional[_Iterable[int]] = ...) -> None: ...
+    __slots__ = ("keys",)
+    KEYS_FIELD_NUMBER: _ClassVar[int]
+    keys: _containers.RepeatedScalarFieldContainer[int]
+    def __init__(self, keys: _Optional[_Iterable[int]] = ...) -> None: ...
 
 class Values(_message.Message):
     __slots__ = ("keys", "data", "width")
@@ -73,6 +73,14 @@ class PushRequest(_message.Message):
     values: _containers.RepeatedScalarFieldContainer[float]
     opts: CallOptions
     def __init__(self, workerId: _Optional[int] = ..., r: _Optional[_Union[Range, _Mapping]] = ..., k: _Optional[_Union[KeyList, _Mapping]] = ..., values: _Optional[_Iterable[float]] = ..., opts: _Optional[_Union[CallOptions, _Mapping]] = ...) -> None: ...
+
+class WaitRequest(_message.Message):
+    __slots__ = ("task", "timeout_ms")
+    TASK_FIELD_NUMBER: _ClassVar[int]
+    TIMEOUT_MS_FIELD_NUMBER: _ClassVar[int]
+    task: Task
+    timeout_ms: int
+    def __init__(self, task: _Optional[_Union[Task, _Mapping]] = ..., timeout_ms: _Optional[int] = ...) -> None: ...
 
 class Result(_message.Message):
     __slots__ = ("v", "ack")
