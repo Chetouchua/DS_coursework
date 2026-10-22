@@ -1,0 +1,26 @@
+experiment: zipf_bounded_delay
+seed: 42
+cluster: { servers: 4, replication: 1 }
+consistency: { mode: bounded, tau: 2 } # sequential|eventual|bounded
+model: 
+  num_keys: 1000000
+  value_width: 1
+  init: zeros
+  learning_rate: 0.01
+  target: { dist: normal, mean: 0.0, std: 1.0 } # hidden w*
+workers:
+  count: 8
+  iterations: 200
+  compute_ms: { dist: lognormal, median: 20, sigma: 0.4 }
+  stragglers: { fraction: 0.125, slowdown: 5 }
+access:
+  mode: sparse # sparse | dense
+  keys_per_iter: 5000
+  zipf_s: 1.1
+  scatter: true # spread hot keys across servers
+  # dense mode: range_size: 100000
+gradient: { type: target_diff, noise_std: 0.0 } # target_diff | fixed
+scenario:
+  - { at: { time_s: 20 }, action: add_server }
+  - { at: { iteration: 100 }, action: kill_server, target: 2 }
+output: { dir: results/run1, observer_every: 10 }

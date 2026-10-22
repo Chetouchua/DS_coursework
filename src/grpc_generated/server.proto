@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+// Main functions defined
+service Server {
+    rpc Push(PushRequest) returns (Task) {};
+    rpc Pull(PullRequest) returns (Task) {};
+    rpc Wait(Task) returns (Result) {};
+}
+
+// Returned on async push and pull
+message Task {
+    uint64 workerId = 1;
+    uint64 taskId = 2;
+}
+
+// Can be range or keylist
+message Range {
+    uint64 begin = 1;
+    uint64 end = 2;
+}
+message KeyList {
+    repeated uint64 key = 1;
+}
+
+// Push result
+message Values {
+    KeyList keys = 1;
+    repeated double data = 2;
+    uint64 width = 3;
+}
+
+// Extra parameters (to be implemented)
+message CallOptions {
+    repeated Task deps = 1;
+    uint64 iteration = 2;
+    string consistency = 3;
+}
+
+// Specific Arguments defined:
+message PullRequest {
+    uint64 workerId = 1;
+    oneof target {
+        Range r = 2;
+        KeyList k = 3;
+    }
+    CallOptions opts = 4;
+}
+
+message PushRequest {
+    uint64 workerId = 1;
+    oneof target {
+        Range r = 2;
+        KeyList k = 3;
+    }
+    repeated double values = 4;
+    CallOptions opts = 5;
+}
+
+message Result {
+    oneof result {
+        Values v = 1;
+        bool ack = 2;
+    }
+}
