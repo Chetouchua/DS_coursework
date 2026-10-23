@@ -33,6 +33,9 @@ python -m grpc_tools.protoc -I./src --python_out=./src --pyi_out=./src --grpc_py
     - B2: main.py is the yaml parser, allows things to be configurable but the actual implementation -> things like sleep/waits, random sampling are not in place - skewed key, dense range, stragglers not there yet
     - B3-5: Not Implemented , correctness only can be seen with the debug print statements in place.
 
-### Possible Improvements in the implemented code
+### Potential Issues / Possible Improvements in the implemented code
 
+- Worker IDs and Task IDs are generated from randint, a UUID would be more appropriate, does coursework spec only suggest or mandate numerical id or is string also okay? Should be fine for intial test, may be necessary to consider on test with many clients/iterations.
 - Numpy code optimization could be explored currently just makes it work
+- A lot of locks being stored on server could this possibly be optimized or is it required
+- A lot of tasks being stored on server task dictionary, possibly we should be able to clean up old ones? Depends on dependency management , or deal with this when it becomes an issue..?
