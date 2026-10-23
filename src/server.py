@@ -1,3 +1,6 @@
+"""
+Single server architecture for Part A/B
+"""
 import argparse
 import asyncio
 from collections import defaultdict
@@ -139,6 +142,11 @@ class ServerServicer(ServerServicer):
             if task.status != "unprocessed":
                 if task.status == "success":
                     return task.result
+                elif task.status == "processing":
+                    ## not possible?
+                    task.status = "failed"
+                    task.failure_message = "Task consistency issue"
+                    return None
                 else:
                     task.status = "failed"
                     task.failure_message = "Task execution failed"
@@ -200,7 +208,7 @@ class ServerServicer(ServerServicer):
             v_start = idx*self.value_width
             await self._update_weights(i, gradient[v_start:v_start+self.value_width])
             idx += 1
-        print(self.weights)
+        print(self.weights) ## debug print
         return Result(ack=True)
     async def push_sparse(self, target: KeyList, gradient: List[float]):
         if not self._validate_keys(target):
@@ -212,7 +220,7 @@ class ServerServicer(ServerServicer):
             v_start = idx*self.value_width
             await self._update_weights(i, gradient[v_start:v_start+self.value_width])
             idx += 1
-        print(self.weights)
+        print(self.weights) ## debug print
         return Result(ack=True)
     ## END GRPC Helper functions
 

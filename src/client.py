@@ -1,30 +1,34 @@
+"""
+Client/Worker architecture
+"""
 import asyncio
 import argparse
 import random
 from client_library.interface import WorkerInterface
 import numpy as np
 
+## ML work in separate class
 class MachineLearning:
     def __init__(self, file_path, gradient_type, noise, seed):
         self.target = np.load(file_path, mmap_mode="r")
         self.is_target_diff = gradient_type == 'target_diff'
         self.noise = noise
         self.seed = seed
+        if self.seed:
+            self.rng = np.random.default_rng(self.seed)
+        else:
+            self.rng = np.random.default_rng(None)
 
     def compute_gradients(self, arr, weights, width):
         ## Gradient is simply W - W* + Sampled Noise
-        if self.seed:
-            rng = np.random.default_rng(self.seed)
-        else:
-            rng = np.random.default_rng(None)
-        noise_arr = rng.normal(0, self.noise, size=len(weights))
+        noise_arr = self.rng.normal(0, self.noise, size=len(weights))
         idx = 0
         for i in arr:
             for j in range(width):
                 if self.is_target_diff:
                     weights[idx] = weights[idx] - self.target[i][j] + noise_arr[idx]
                 else:
-                    weights[idx] = 0.01 ## just direct deterministic number should ideally be f(k , t, i)
+                    weights[idx] = 0.01 ## just direct deterministic number should properly be f(k , t, i)
                 idx += 1
         return weights
 
@@ -35,7 +39,7 @@ async def main(args):
 
     for i in range(args.iterations):
         if mode == 'sparse':
-            sparse_choices = random.sample(list(range(args.num_keys)), args.keys_per_iter)
+            sparse_choices = random.sample(list(range(args.num_keys)), args.keys_per_iter) ## uses random sampling but we need zipf and other things refer document
             task = await w.apull_sparse(sparse_choices)
             weight_result = await w.wait(task)
         elif mode == 'dense':
@@ -48,7 +52,7 @@ async def main(args):
             task = await w.apush_sparse(sparse_choices, gradients)
         elif mode == 'dense':
             task = await w.apush_dense(begin, end, gradients)
-        await w.wait(task)
+        await w.wait(task) ## technically works without this wait
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

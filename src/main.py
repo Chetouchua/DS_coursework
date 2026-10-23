@@ -1,3 +1,6 @@
+"""
+Simulation entrypoint parses the yaml and launches the processes.
+"""
 import yaml
 import sys
 import os
@@ -25,6 +28,10 @@ class ModelConfig(StrictModel):
     value_width: int = Field(ge=1)
     learning_rate: float
     target: ModelTargetConfig
+
+class WorkersStragglersConfig(StrictModel):
+    fraction: float
+    slowdown: int
 
 class WorkersConfig(StrictModel):
     count: int = Field(gt=0)
