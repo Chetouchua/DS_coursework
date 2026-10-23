@@ -4,6 +4,16 @@ This is notes for us developers, later we may just reword to make the proper sub
 
 All code within `src/` and running yaml in `experiments`
 
+### Run Instructions
+
+Each experiment is in `experiments/` simply run for example:
+```bash
+python src/main.py experiments/test.yaml
+```
+Ideally retain this path so the data folder in project root can be used to store the target weight file.
+
+The proper testing and validation framework is to be implemented but I have used print statements to do some tests and seen that the values do converge and the system works.
+
 ### Explanations:
 
 To compile the files within `src/grpc_generated` we must use the below command, only the `src/grpc_generated/server.proto` is manually created as per the required RPCs. Once prepared the classes and functions can be made within `src/server.py`
@@ -22,3 +32,7 @@ python -m grpc_tools.protoc -I./src --python_out=./src --pyi_out=./src --grpc_py
     - B1: Under development?
     - B2: main.py is the yaml parser, allows things to be configurable
     - B3-5: Not Implemented
+
+### Possible Improvements in the implemented code
+
+- Numpy code optimization could be explored currently just makes it work

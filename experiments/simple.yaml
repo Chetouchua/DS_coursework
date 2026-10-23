@@ -1,0 +1,20 @@
+experiment: simple
+seed: 42
+consistency: { mode: sequential } # sequential|eventual|bounded
+model: 
+  num_keys: 5
+  value_width: 2
+  init: zeros
+  learning_rate: 0.01
+  target: { dist: normal, mean: 0.0, std: 1.0 } # hidden w*
+workers:
+  count: 5
+  iterations: 200
+  compute_ms: { dist: lognormal, median: 20, sigma: 0.4 }
+  stragglers: { fraction: 0.125, slowdown: 5 }
+access:
+  mode: sparse # sparse | dense
+  keys_per_iter: 3
+  zipf_s: 1.1
+gradient: { type: target_diff, noise_std: 0.0 } # target_diff | fixed
+output: { dir: results/run1, observer_every: 10 }
