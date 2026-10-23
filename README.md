@@ -35,6 +35,7 @@ python -m grpc_tools.protoc -I./src --python_out=./src --pyi_out=./src --grpc_py
 
 ### Potential Issues / Possible Improvements in the implemented code
 
+- Need to clarify and implement the consistency modes of sequency eventual etc... ?
 - To check API error handling, may not be as comprehensive as coursework spec defines.
 - Worker IDs and Task IDs are generated from randint, a UUID would be more appropriate, does coursework spec only suggest or mandate numerical id or is string also okay? Should be fine for intial test, may be necessary to consider on test with many clients/iterations.
 - Numpy code optimization could be explored currently just makes it work
