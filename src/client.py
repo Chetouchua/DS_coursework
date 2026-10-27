@@ -4,7 +4,8 @@ Client/Worker architecture
 import asyncio
 import argparse
 import random
-from client_library.interface import WorkerInterface
+#older version: from client_library.interface import WokerInterface
+from client_library.interface_ver2 import WorkerInterface
 import numpy as np
 
 ## ML work in separate class
@@ -46,8 +47,11 @@ async def main(args):
             begin = random.choice(list(range(args.num_keys-args.keys_per_iter)))
             end = begin + args.keys_per_iter
             task = await w.apull_dense(begin, end)
+
         weight_result = await w.wait(task)
+
         gradients = ml.compute_gradients(weight_result.v.keys.keys, weight_result.v.data, weight_result.v.width)
+        
         if mode == 'sparse':
             task = await w.apush_sparse(sparse_choices, gradients)
         elif mode == 'dense':

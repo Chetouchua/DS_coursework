@@ -3,3 +3,5 @@ numpy==2.5.4
 PyYAML==6.0.3
 grpcio==1.84.0
 pydantic==2.14.1
+pythonpath = src
+asyncio_mode = auto

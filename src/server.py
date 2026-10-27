@@ -22,6 +22,8 @@ class ServerTask:
     status: Literal['failed', 'success', 'unprocessed', 'processing']
     async_task: Optional[asyncio.Task] = None
     failure_message: Optional[str] = ""
+    #Ann updates:
+    result: Optional[Result] = None
 
 ## todo the deps logics.
 class ServerServicer(ServerServicer):
@@ -35,6 +37,8 @@ class ServerServicer(ServerServicer):
         self.locks = [asyncio.Lock() for _ in range(num_keys)]
         ## maintained task list shared state
         self.tasks = defaultdict(dict)
+        #Ann updates
+        self._next_id = 1
 
     ## GRPC Definitions
     async def Pull(self, request: PullRequest, context) -> Task:
@@ -222,6 +226,18 @@ class ServerServicer(ServerServicer):
             idx += 1
         print(self.weights) ## debug print
         return Result(ack=True)
+
+    #Ann updates
+    async def resolve_deps(self, deps, context) -> List[ServerTask]:
+        out = []
+        for d in deps:
+            t = self._locate_task(d)
+            if t is None:
+                await context.abort(
+                    grpc.StatusCode.INVALID_ARGUMENT,
+                    f"dependency task {d.taskId} (worker {d.workerId}) does not exist.")
+            out.append(t)
+        return out
     ## END GRPC Helper functions
 
     ## Only used within class
