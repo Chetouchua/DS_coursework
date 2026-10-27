@@ -1,8 +1,9 @@
 #Maybe it would work better on A2 task?
 import logging
-from typing import Iterable, List, Optional, Union
+from typing import Iterable, List, Optional, Union, Any
 import grpc 
 import numpy as np
+import hashlib 
 from grpc_generated.server_pb2 import (
     CallOptions, KeyList, PullRequest, PushRequest, Range, Task, WaitRequest)
 from grpc_generated.server_pb2_grpc import ServerStub 
@@ -39,7 +40,8 @@ class Handle:
             res = await self._client.wait(self, timeout_ms)
             if self.kind == "pull":
                 v = res.v
-                self._cache = np.asarray(v.data, dtype=np.float64).reshape
+                arr = np.asanyarray(v.data, dtype=np.float64)
+                self._cache = arr.reshape((self._n, v.width)) if v.width > 0 else arr
             else:
                 self._cache = False
         return None if self._cache is False else self._cache
@@ -52,6 +54,34 @@ class WorkerInterface:
         self._channel = None 
         self._stub = None 
         self._handles: List[Handle] = []
+        self._agree_key_cache = set()
+
+    def _target(self, keys: KeysLike):
+            if isinstance(keys, range) and keys.step == 1:
+                if len(keys) == 0:
+                    raise InvalidRequestError("empty key range")
+                return {"r": Range(begin=keys.start, end=keys.stop)}, len(keys)
+            if isinstance(keys, slice):
+                if keys.start is None or keys.stop is None or keys.step not in (None, 1):
+                    raise InvalidRequestError("slice needs explicit start and stop, step 1")
+                return {"r": Range(begin=keys.start, end=keys.stop)}, keys.stop - keys.start
+            arr = np.asarray(keys, dtype=np.uint64)
+            if arr.size == 0:
+                raise InvalidRequestError("empty key list")
+            if arr.size > 1 and not np.all(arr[1:] > arr[:-1]):
+                bad = int(np.argmax(~(arr[1:] > arr[:-1]))) + 1
+                raise InvalidRequestError(
+                    f"keys must be strictly increasing, but keys[{bad}]={int(arr[bad])} "
+                    f"<= keys[{bad-1}]={int(arr[bad-1])}")
+    
+            key_bytes = arr.tobytes()
+            key_hash = hashlib.blake2b(key_bytes, digest_size=8).digest()
+            if key_hash in self._agree_key_cache:
+                return {"cached_key_hash": key_hash}, int(arr.size)
+    
+            else:
+                self._agree_key_cache.add(key_hash)
+                return {"k": KeyList(keys=arr.tolist()), "key_hash": key_hash}, int(arr.size)
 
     async def close(self) -> None:
         if self._channel is not None:
@@ -75,8 +105,22 @@ class WorkerInterface:
         req = PushRequest(workerId=self.worker_id, values=g.ravel().tolist(),
                           opts=self._opts(deps), **target)
         
-        return await self._submit(self._sub.Push, req, "push", n)
+        return await self._submit(self._stub.Push, req, "push", n)
 
+    async def connect(self):
+        self._channel = grpc.aio.insecure_channel(self._addr)
+        self._stub = ServerStub(self._channel)
+        return self 
+
+    async def wait(self, handle: "Handle", timeout_ms: int=0) -> Any:
+        req = WaitRequest(taskId=handle.ts)
+        try:
+            timeout = timeout_ms / 1000.0 if timeout_ms > 0 else None
+            res = await self._stub.Wait(req, timeout = timeout)
+            return res 
+        except grpc.aio.AioRpcError as e:
+            raise self._translate(e)
+    
     async def wait_all(self) -> None:
         pending, self._handles = self._handles, []
         for h in pending:
@@ -88,26 +132,6 @@ class WorkerInterface:
         h = Handle(self, task, kind, n)
         self._handles.append(h)
         return h 
-
-    @staticmethod
-    def _target(keys: KeysLike):
-        if isinstance(keys, range) and keys.step == 1:
-            if len(keys) == 0:
-                raise InvalidRequestError("empty key range")
-            return {"r": Range(begin=keys.start, end=keys.stop)}, len(keys)
-        if isinstance(keys, slice):
-            if keys.start is None or keys.stop is None or keys.step not in (None, 1):
-                raise InvalidRequestError("slice needs explicit start and stop, step 1")
-            return {"r": Range(begin=keys.start, end=keys.stop)}, keys.stop - keys.start
-        arr = np.asarray(keys, dtype=np.uint64)
-        if arr.size == 0:
-            raise InvalidRequestError("empty key list")
-        if arr.size > 1 and not np.all(arr[1:] > arr[:-1]):
-            bad = int(np.argmax(~(arr[1:] > arr[:-1]))) + 1
-            raise InvalidRequestError(
-                f"keys must be strictly increasing, but keys[{bad}]={int(arr[bad])} "
-                f"<= keys[{bad-1}]={int(arr[bad-1])}")
-        return {"k": KeyList(keys=arr.tolist())}, int(arr.size)
 
     @staticmethod
     def _opts(deps) -> CallOptions:

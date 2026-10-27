@@ -1,3 +1,4 @@
+//updated to support hash caching
 syntax = "proto3";
 
 // Main functions defined
@@ -42,8 +43,10 @@ message PullRequest {
     oneof target {
         Range r = 2;
         KeyList k = 3;
+        bytes cached_key_hash = 4;
     }
-    CallOptions opts = 4;
+    bytes key_hash = 5;
+    CallOptions opts = 6;
 }
 
 message PushRequest {
@@ -51,9 +54,11 @@ message PushRequest {
     oneof target {
         Range r = 2;
         KeyList k = 3;
+        bytes cached_key_hash = 4;
     }
-    repeated double values = 4;
-    CallOptions opts = 5;
+    bytes key_hash = 5;
+    repeated double values = 6;
+    CallOptions opts = 7;
 }
 
 message WaitRequest {

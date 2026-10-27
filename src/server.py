@@ -37,8 +37,9 @@ class ServerServicer(ServerServicer):
         self.locks = [asyncio.Lock() for _ in range(num_keys)]
         ## maintained task list shared state
         self.tasks = defaultdict(dict)
-        #Ann updates
+        #Ann updates: supports for hash caching
         self._next_id = 1
+        self.key_cache = {}
 
     ## GRPC Definitions
     async def Pull(self, request: PullRequest, context) -> Task:
@@ -54,6 +55,13 @@ class ServerServicer(ServerServicer):
                 grpc.StatusCode.INVALID_ARGUMENT,
                 "Invalid key list"
             )
+            #hash caching
+            if request.key_hash:
+                self.key_cache[request.key_hash] = request.k
+        elif target_type == 'cached_key_hash':
+            if request.cached_key_hash not in self.key_cache:
+                await context.abort(grpc.StatusCode.INVALID_ARGUMENT, 
+                                    "Unknown cached key hash.")
         if target_type is None:
             await context.abort(
                 grpc.StatusCode.INVALID_ARGUMENT,
@@ -96,6 +104,14 @@ class ServerServicer(ServerServicer):
                     grpc.StatusCode.INVALID_ARGUMENT,
                     "Invalid gradient array length"
                 )
+        elif target_type == 'cached_key_hash':
+            if request.cached_key_hash not in self.key_cache:
+                await context.abort(grpc.StatusCode.INVALID_ARGUMENT,
+                                    "Unknown cached key hash.")
+            cached_keys = self.key_cache[request.cached_key_hash]
+            if len(request.values) != len(cached_keys.keys) * self.value_width:
+                await context.aort(grpc.StatusCode.INVALID_ARGUMENT,
+                                   "Invalid Range and/or Keylist.")
         if target_type is None:
             await context.abort(
                 grpc.StatusCode.INVALID_ARGUMENT,
