@@ -95,7 +95,7 @@ def process_launcher(config: ExperimentConfig):
     clients = []
     for i in range(int(config.workers.count)):
         ## seed needs to be different on each worker but deterministically
-        c = subprocess.Popen(["python", "src/client.py", "--num-keys", str(config.model.num_keys), "--value-width", str(config.model.value_width), "--seed", str(config.seed+i), "--mode", str(config.access.mode), "--keys-per-iter", str(config.access.keys_per_iter), "--iterations", str(config.workers.iterations), "--target-weight-file", file_name, "--gradient-type", config.gradient.type, "--gradient-noise", str(config.gradient.noise_std)])
+        c = subprocess.Popen(["python", "src/client_ver2.py", "--num-keys", str(config.model.num_keys), "--value-width", str(config.model.value_width), "--seed", str(config.seed+i), "--mode", str(config.access.mode), "--keys-per-iter", str(config.access.keys_per_iter), "--iterations", str(config.workers.iterations), "--target-weight-file", file_name, "--gradient-type", config.gradient.type, "--gradient-noise", str(config.gradient.noise_std)])
         clients.append(c)
 
     try:
