@@ -1,0 +1,95 @@
+syntax = "proto3";
+
+package ps;
+
+// Main Parameter Server Service
+service Server {
+    rpc Push(PushRequest) returns (PushResponse);
+    rpc Pull(PullRequest) returns (PullResponse);
+    rpc Wait(WaitRequest) returns (WaitResponse);
+}
+
+// Reusable Task identifier (WorkerId, seq) for idempotence
+message TaskId {
+    uint32 worker_id = 1;
+    uint64 task_id = 2;
+}
+
+// Contiguous half-open interval [begin, end)
+message Range {
+    uint64 begin = 1;
+    uint64 end = 2;
+}
+
+// Explicit sparse key list
+message KeyList {
+    repeated uint64 keys = 1;
+}
+
+// Returned values payload
+message Values {
+    KeyList keys = 1;
+    repeated double data = 2;
+    uint32 width = 3;
+}
+
+// Call configuration and metadata
+message CallOptions {
+    repeated TaskId deps = 1;      // Antecedent tasks that must complete first (Part A3)
+    uint64 iteration = 2;          // Worker's logical iteration number
+}
+
+// Distinct error status codes required by Section 5.2
+enum StatusCode {
+    STATUS_CODE_UNSPECIFIED = 0;
+    STATUS_CODE_OK = 1;
+    STATUS_CODE_INVALID_ARGUMENT = 2;
+    STATUS_CODE_DEPENDENCY_FAILED = 3;  // Antecedent task failed
+    STATUS_CODE_TIMEOUT = 4;            // Timed out, but task is still running
+    STATUS_CODE_INTERNAL_ERROR = 5;
+}
+
+// --- Request and Response Messages ---
+
+message PushRequest {
+    TaskId task_id = 1;            // Client-assigned (worker_id, seq)
+    oneof target {
+        Range r = 2;
+        KeyList k = 3;
+        bytes cached_key_hash = 4;
+    }
+    bytes key_hash = 5;
+    repeated double values = 6;
+    CallOptions opts = 7;
+}
+
+message PushResponse {
+    TaskId task_id = 1;            // Returns the unique task identifier
+}
+
+message PullRequest {
+    TaskId task_id = 1;            // Client-assigned (worker_id, seq)
+    oneof target {
+        Range r = 2;
+        KeyList k = 3;
+        bytes cached_key_hash = 4;
+    }
+    bytes key_hash = 5;
+    CallOptions opts = 6;
+}
+
+message PullResponse {
+    TaskId task_id = 1;            // Returns the unique task identifier
+}
+
+message WaitRequest {
+    TaskId task_id = 1;            // Task to await
+    uint64 timeout_ms = 2;         // 0 means wait indefinitely
+}
+
+message WaitResponse {
+    StatusCode status = 1;
+    string error_message = 2;
+    Values values = 3;             // Populated on Pull completion
+    bool ack = 4;                  // Populated on Push completion
+}

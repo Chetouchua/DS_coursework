@@ -1,0 +1,38 @@
+experiment: zipf_bounded_delay
+seed: 42
+cluster:
+  servers: 1
+  replication: 0
+consistency:
+  mode: bounded
+  tau: 2
+model:
+  num_keys: 1000000
+  value_width: 1
+  init: zeros
+  learning_rate: 0.01
+  target:
+    dist: normal
+    mean: 0.0
+    std: 1.0
+workers:
+  count: 8
+  iterations: 200
+  compute_ms:
+    dist: lognormal
+    median: 20
+    sigma: 0.4
+  stragglers:
+    fraction: 0.125
+    slowdown: 5.0
+  access:
+    mode: sparse
+    keys_per_iter: 5000
+    zipf_s: 1.1
+    scatter: true
+  gradient:
+    type: target_diff
+    noise_std: 0.0
+output:
+  dir: results/zipf_run
+  observer_every: 10

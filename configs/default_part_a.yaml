@@ -1,0 +1,35 @@
+experiment: single_node_sanity
+seed: 42
+cluster:
+  servers: 1
+  replication: 0
+consistency:
+  mode: sequential
+  tau: 0
+model:
+  num_keys: 1000
+  value_width: 1
+  init: zeros
+  learning_rate: 0.05
+  target:
+    dist: normal
+    mean: 0.0
+    std: 1.0
+workers:
+  count: 4
+  iterations: 20
+  compute_ms:
+    dist: constant
+    value: 5
+  stragglers:
+    fraction: 0.0
+    slowdown: 1.0
+  access:
+    mode: dense
+    range_size: 1000
+  gradient:
+    type: target_diff
+    noise_std: 0.0
+output:
+  dir: results/sanity_run_pytest
+  observer_every: 1
