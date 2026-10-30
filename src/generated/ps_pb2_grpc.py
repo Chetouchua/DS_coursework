@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-from . import ps_pb2 as ps__pb2
+from src.generated import ps_pb2 as src_dot_generated_dot_ps__pb2
 
 GRPC_GENERATED_VERSION = '1.85.0'
 GRPC_VERSION = grpc.__version__
@@ -18,7 +18,7 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + ' but the generated code in ps_pb2_grpc.py depends on'
+        + ' but the generated code in src/generated/ps_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
@@ -37,18 +37,18 @@ class ServerStub:
         """
         self.Push = channel.unary_unary(
                 '/ps.Server/Push',
-                request_serializer=ps__pb2.PushRequest.SerializeToString,
-                response_deserializer=ps__pb2.PushResponse.FromString,
+                request_serializer=src_dot_generated_dot_ps__pb2.PushRequest.SerializeToString,
+                response_deserializer=src_dot_generated_dot_ps__pb2.PushResponse.FromString,
                 _registered_method=True)
         self.Pull = channel.unary_unary(
                 '/ps.Server/Pull',
-                request_serializer=ps__pb2.PullRequest.SerializeToString,
-                response_deserializer=ps__pb2.PullResponse.FromString,
+                request_serializer=src_dot_generated_dot_ps__pb2.PullRequest.SerializeToString,
+                response_deserializer=src_dot_generated_dot_ps__pb2.PullResponse.FromString,
                 _registered_method=True)
         self.Wait = channel.unary_unary(
                 '/ps.Server/Wait',
-                request_serializer=ps__pb2.WaitRequest.SerializeToString,
-                response_deserializer=ps__pb2.WaitResponse.FromString,
+                request_serializer=src_dot_generated_dot_ps__pb2.WaitRequest.SerializeToString,
+                response_deserializer=src_dot_generated_dot_ps__pb2.WaitResponse.FromString,
                 _registered_method=True)
 
 
@@ -79,18 +79,18 @@ def add_ServerServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'Push': grpc.unary_unary_rpc_method_handler(
                     servicer.Push,
-                    request_deserializer=ps__pb2.PushRequest.FromString,
-                    response_serializer=ps__pb2.PushResponse.SerializeToString,
+                    request_deserializer=src_dot_generated_dot_ps__pb2.PushRequest.FromString,
+                    response_serializer=src_dot_generated_dot_ps__pb2.PushResponse.SerializeToString,
             ),
             'Pull': grpc.unary_unary_rpc_method_handler(
                     servicer.Pull,
-                    request_deserializer=ps__pb2.PullRequest.FromString,
-                    response_serializer=ps__pb2.PullResponse.SerializeToString,
+                    request_deserializer=src_dot_generated_dot_ps__pb2.PullRequest.FromString,
+                    response_serializer=src_dot_generated_dot_ps__pb2.PullResponse.SerializeToString,
             ),
             'Wait': grpc.unary_unary_rpc_method_handler(
                     servicer.Wait,
-                    request_deserializer=ps__pb2.WaitRequest.FromString,
-                    response_serializer=ps__pb2.WaitResponse.SerializeToString,
+                    request_deserializer=src_dot_generated_dot_ps__pb2.WaitRequest.FromString,
+                    response_serializer=src_dot_generated_dot_ps__pb2.WaitResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -119,8 +119,8 @@ class Server:
             request,
             target,
             '/ps.Server/Push',
-            ps__pb2.PushRequest.SerializeToString,
-            ps__pb2.PushResponse.FromString,
+            src_dot_generated_dot_ps__pb2.PushRequest.SerializeToString,
+            src_dot_generated_dot_ps__pb2.PushResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -146,8 +146,8 @@ class Server:
             request,
             target,
             '/ps.Server/Pull',
-            ps__pb2.PullRequest.SerializeToString,
-            ps__pb2.PullResponse.FromString,
+            src_dot_generated_dot_ps__pb2.PullRequest.SerializeToString,
+            src_dot_generated_dot_ps__pb2.PullResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -173,8 +173,8 @@ class Server:
             request,
             target,
             '/ps.Server/Wait',
-            ps__pb2.WaitRequest.SerializeToString,
-            ps__pb2.WaitResponse.FromString,
+            src_dot_generated_dot_ps__pb2.WaitRequest.SerializeToString,
+            src_dot_generated_dot_ps__pb2.WaitResponse.FromString,
             options,
             channel_credentials,
             insecure,

@@ -21,6 +21,8 @@ class Driver:
         self.observer: Optional[ModelObserver] = None
 
     def run(self) -> None:
+        port = 50055
+        server_addr = f"localhost:{port}"
         out_dir = getattr(self.config, "output", None)
         output_dir = out_dir.dir if out_dir and out_dir.dir else f"results/{self.config.experiment}"
         os.makedirs(output_dir, exist_ok=True)
@@ -39,7 +41,7 @@ class Driver:
             "--num-keys", str(self.config.model.num_keys),
             "--value-width", str(self.config.model.value_width),
             "--learning-rate", str(self.config.model.learning_rate),
-            "--port", "50055",
+            "--port", str(port),
         ]
         print("[*] Starting Parameter Server...")
         self.server_proc = subprocess.Popen(server_cmd, env=env)
@@ -82,6 +84,7 @@ class Driver:
                 "--target-file", target_file,
                 "--gradient-type", str(gradient_type),
                 "--gradient-noise", str(gradient_noise),
+                "--server-addr", server_addr,
             ]
             self.worker_procs.append(subprocess.Popen(worker_cmd, env=env))
 
@@ -99,11 +102,11 @@ class Driver:
         finally:
             self.teardown()
 
-    def _save_summary_and_weights(self, output_dir: str, w_star: np.ndarray) -> None:
+    def _save_summary_and_weights(self, output_dir: str, w_star: np.ndarray, server_addr: str = "localhost:50055") -> None:
         """Pulls final model weights from server, computes metrics, and writes summary files."""
         print("[*] Pulling final state and generating summary...")
         try:
-            with Client(worker_id=10000, server_addr="localhost:50051") as client:
+            with Client(worker_id=10000, server_addr=server_addr) as client:
                 task = client.pull(Range(0, self.config.model.num_keys))
                 final_w = task.wait(timeout_ms=5000)
 
