@@ -30,6 +30,52 @@ To compile the files within `src/generated` we must use the below command, only 
 python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. src/generated/ps.proto
 ```
 
+### Repository Architecture
+
+> **Note (Tentative):** The directory structure below outlines the baseline architecture for **Task A** (Parameter Server Core) and **Task B** (Asynchronous Client & Harness). We aim to adhere to this modular layout as closely as possible, which ensures clean separation of concerns and makes extending the system to future tasks straightforward without major refactoring. Some files are already there some needs to be created.
+
+```text
+parameter-server/
+├── configs/
+│   ├── default_part_a.yaml        # Simple single-worker sanity check config
+│   └── zipf_bounded_delay.yaml    # Realistic workload config from Section 5.3
+├── src/
+│   ├── __init__.py
+│   ├── generated/                 # Compiled protobuf/gRPC stubs
+│   │   ├── __init__.py
+│   │   ├── ps.proto               # Protocol Buffer definitions for Push/Pull/Tasks
+│   │   ├── ps_pb2.py
+│   │   └── ps_pb2_grpc.py
+│   ├── server/
+│   │   ├── __init__.py
+│   │   ├── store.py               # In-memory parameter store & SGD update rule
+│   │   ├── dep_tracker.py         # Task dependency resolver & condition variables
+│   │   └── service.py             # ParameterServerServicer (gRPC service handler)
+│   ├── client/
+│   │   ├── __init__.py
+│   │   ├── api.py                 # Asynchronous Client API (push, pull, Task handle)
+│   │   └── types.py               # Range, TaskId, Task, Values data classes
+│   └── harness/
+│       ├── __init__.py
+│       ├── config.py              # YAML config loader and validator
+│       ├── workload.py            # Zipf/Dense key sampler & lognormal delays
+│       ├── oracle.py              # Analytical target_diff gradient & Euclidean distance
+│       ├── worker.py              # Emulated worker thread loop
+│       ├── observer.py            # Dedicated background observer thread
+│       ├── metrics.py             # Thread-safe CSV/JSON logger (ops, convergence)
+│       └── driver.py              # Main entry point to launch cluster & orchestrate run
+├── tests/
+│   ├── __init__.py
+│   ├── test_store.py              # Concurrent push aggregation unit tests
+│   ├── test_deps.py               # Task dependency ordering tests
+│   └── test_oracle_x1.py          # End-to-end mathematical convergence test (X1)
+├── results/                       # Output directory for CSV and JSON files
+├── main.py                        # Top-level executable entry point
+├── compile_protos.sh              # Build script to generate Python stubs
+├── requirements.txt               # Project dependencies
+└── README.md                      # Setup and execution guide
+```
+
 ### Implemented
 
 - For week 1 from the PDF:
