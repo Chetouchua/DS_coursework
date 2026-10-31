@@ -7,7 +7,7 @@ consistency:
   mode: sequential
   tau: 0
 model:
-  num_keys: 1000
+  num_keys: 1000000
   value_width: 1
   init: zeros
   learning_rate: 0.05
@@ -16,8 +16,8 @@ model:
     mean: 0.0
     std: 1.0
 workers:
-  count: 4
-  iterations: 20
+  count: 8
+  iterations: 3
   compute_ms:
     dist: constant
     value: 5
@@ -25,11 +25,12 @@ workers:
     fraction: 0.0
     slowdown: 1.0
   access:
-    mode: dense
-    range_size: 1000
+    mode: sparse
+    # range_size: 1000
+    keys_per_iter: 5000
   gradient:
     type: target_diff
     noise_std: 0.0
 output:
-  dir: results/sanity_run_pytest
+  dir: results/test
   observer_every: 1

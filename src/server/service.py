@@ -3,6 +3,7 @@ import asyncio
 from typing import Optional
 import grpc
 import logging
+import time
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
@@ -21,6 +22,14 @@ from src.generated.ps_pb2 import (
 from src.generated.ps_pb2_grpc import ServerServicer, add_ServerServicer_to_server
 from src.server.dep_tracker import DependencyTracker, ServerTask
 from src.server.store import ParameterStore
+
+MAX_MESSAGE_LENGTH = 128 * 1024 * 1024  # 128 MB
+
+server_options = [
+    ("grpc.max_send_message_length", MAX_MESSAGE_LENGTH),
+    ("grpc.max_receive_message_length", MAX_MESSAGE_LENGTH),
+    ("grpc.so_reuseport", 0)
+]
 
 
 class ParameterServerServicer(ServerServicer):
@@ -118,59 +127,116 @@ class ParameterServerServicer(ServerServicer):
     # --- Background Processing with Dependency Checking ---
 
     async def _process_push(self, task: ServerTask, request: PushRequest):
+        w_id = request.task_id.worker_id
+        t_id = request.task_id.task_id
+        start_time = time.perf_counter()
+        # logging.info(f"[_process_push] ENTERED: Worker {request.task_id.worker_id} Task {request.task_id.task_id}")
+        
         try:
             task.status = "processing"
             # 1. Enforce Dependencies (Part A3)
             if request.opts and request.opts.deps:
                 ok, err = await self.tracker.wait_for_deps(list(request.opts.deps))
                 if not ok:
-                    task.status = "failed"
-                    task.failure_message = err
+                    self.tracker.mark_failed(w_id, t_id, err)
+                    logging.warning(
+                        f"[_process_push] Worker {w_id} Task {t_id} FAILED dependencies: {err}"
+                    )
                     return
 
-            # 2. Execute Aggregation
-            target_type = request.WhichOneof("target")
-            if target_type == "r":
-                await self.store.push_dense(request.r.begin, request.r.end, request.values)
-            elif target_type == "k":
-                await self.store.push_sparse(list(request.k.keys), request.values)
-            elif target_type == "cached_key_hash":
-                keys = self.key_cache[request.cached_key_hash].keys
-                await self.store.push_sparse(list(keys), request.values)
+                # 2. Execute Aggregation
+                target_type = request.WhichOneof("target")
+                grad_values = list(request.values) if hasattr(request, "values") else []
+                grad_count = len(grad_values)
 
-            task.status = "success"
+                if target_type == "r":
+                    begin , end = request.r.begin , request.r.end
+                    key_summary = f"dense range [{begin}:{end}] ({end - begin} keys)"
+                    await self.store.push_dense(request.r.begin, request.r.end, grad_values)
+                elif target_type == "k":
+                    raw_keys = list(request.k.keys)
+                    sample = raw_keys[:5]
+                    key_summary = (
+                    f"{len(raw_keys)} sparse keys (sample: {sample}{'...' if len(raw_keys) > 5 else ''})"
+                    )
+                    await self.store.push_sparse(list(request.k.keys), grad_values)
+                elif target_type == "cached_key_hash":
+                    keys = self.key_cache[request.cached_key_hash].keys
+                    raw_keys = list(keys)
+                    sample = raw_keys[:5]
+                    key_summary = (
+                        f"cached hash {request.cached_key_hash} "
+                        f"({len(raw_keys)} keys, sample: {sample}{'...' if len(raw_keys) > 5 else ''})"
+                    )
+                    await self.store.push_sparse(raw_keys, grad_values)
+
+            self.tracker.mark_success(w_id, t_id)
+
+            elapsed_ms = (time.perf_counter() - start_time) * 1000
+            logging.info(
+                f"[_process_push] SUCCESS: Worker {w_id} pushed gradients to {key_summary} "
+                f"(task_id={t_id}, gradients={grad_count}, elapsed={elapsed_ms:.2f}ms)"
+            )
         except Exception as e:
-            task.status = "failed"
-            task.failure_message = str(e)
+            self.tracker.mark_failed(w_id,t_id,str(e))
+            logging.error(f"[_process_push] ERROR: Worker {w_id} Task {t_id}: {e}", exc_info=True)
 
     async def _process_pull(self, task: ServerTask, request: PullRequest):
+        w_id = request.task_id.worker_id
+        t_id = request.task_id.task_id
+        start_time = time.perf_counter()
+        
         try:
             task.status = "processing"
             # 1. Enforce Dependencies
             if request.opts and request.opts.deps:
                 ok, err = await self.tracker.wait_for_deps(list(request.opts.deps))
                 if not ok:
-                    task.status = "failed"
-                    task.failure_message = err
+                    self.tracker.mark_failed(w_id, t_id, err)
+                    logging.warning(
+                    f"[_process_pull] Worker {w_id} Task {t_id} FAILED dependencies: {err}"
+                    )
                     return
 
             # 2. Extract Data
             target_type = request.WhichOneof("target")
             if target_type == "r":
+                begin , end = request.r.begin , request.r.end
+                key_summary = f"dense range [{begin}:{end}] ({end - begin} keys)"
                 flat_data = await self.store.pull_dense(request.r.begin, request.r.end)
                 keys = KeyList(keys=list(range(request.r.begin, request.r.end)))
             elif target_type == "k":
+                raw_keys = list(request.k.keys)
+                sample = raw_keys[:5]
+                key_summary = (
+                f"{len(raw_keys)} sparse keys (sample: {sample}{'...' if len(raw_keys) > 5 else ''})"
+                )
                 flat_data = await self.store.pull_sparse(list(request.k.keys))
                 keys = request.k
             elif target_type == "cached_key_hash":
                 keys = self.key_cache[request.cached_key_hash]
+                raw_keys = list(keys.keys)
+                sample = raw_keys[:5]
+                key_summary = (
+                    f"cached hash {request.cached_key_hash} "
+                    f"({len(raw_keys)} keys, sample: {sample}{'...' if len(raw_keys) > 5 else ''})"
+                )
                 flat_data = await self.store.pull_sparse(list(keys.keys))
 
-            task.result_values = Values(keys=keys, data=flat_data, width=self.value_width)
-            task.status = "success"
+            vals = Values(keys=keys, data=flat_data, width=self.value_width)
+            self.tracker.mark_success(w_id, t_id, values=vals)
+
+            elapsed_ms = (time.perf_counter() - start_time) * 1000
+            logging.info(
+                f"[_process_pull] SUCCESS: Worker {w_id} pulled {key_summary} "
+                f"(task_id={t_id}, values={len(flat_data)}, elapsed={elapsed_ms:.2f}ms)"
+            )
         except Exception as e:
-            task.status = "failed"
-            task.failure_message = str(e)
+            self.tracker.mark_failed(w_id, t_id, str(e))
+            logging.error(
+            f"[_process_pull] ERROR: Worker {w_id} Task {t_id} encountered exception: {e}",
+            exc_info=True,
+            )
 
     # --- Validation ---
 
@@ -195,7 +261,7 @@ class ParameterServerServicer(ServerServicer):
 
 
 async def serve(port: int, num_keys: int, value_width: int, learning_rate: float):
-    server = grpc.aio.server(options=[("grpc.so_reuseport", 0)])
+    server = grpc.aio.server(options=server_options)
     servicer = ParameterServerServicer(num_keys, value_width, learning_rate)
     add_ServerServicer_to_server(servicer, server)
     server.add_insecure_port(f"[::]:{port}")

@@ -65,7 +65,20 @@ class Driver:
         gradient_cfg = getattr(workers_cfg, "gradient", None) or getattr(self.config, "gradient", None)
 
         mode = access_cfg.mode if access_cfg else "dense"
-        keys_per_iter = getattr(access_cfg, "range_size", None) or getattr(access_cfg, "keys_per_iter", None) or 1000
+        if mode == "sparse":
+            keys_per_iter = (
+                getattr(access_cfg, "keys_per_iter", None)
+                or getattr(access_cfg, "subset_size", None)
+                or 100  # Reasonable sparse default
+            )
+        else:
+            # Dense mode uses range_size
+            keys_per_iter = (
+                getattr(access_cfg, "range_size", None)
+                or getattr(access_cfg, "keys_per_iter", None)
+                or self.config.model.num_keys
+            )
+        print(keys_per_iter)
         gradient_type = gradient_cfg.type if gradient_cfg else "target_diff"
         gradient_noise = gradient_cfg.noise_std if gradient_cfg else 0.0
 
@@ -115,6 +128,8 @@ class Driver:
 
             initial_l2 = float(np.linalg.norm(initial_w - w_star))
             final_l2 = float(np.linalg.norm(final_w - w_star))
+
+            print("Server max absolute weight:", np.max(np.abs(final_w)))
 
             # 1. Save raw arrays
             np.save(os.path.join(output_dir, "final_weights.npy"), final_w)

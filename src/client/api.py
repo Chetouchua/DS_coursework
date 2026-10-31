@@ -33,6 +33,13 @@ from src.generated.ps_pb2_grpc import ServerStub
 
 log = logging.getLogger(__name__)
 
+MAX_MESSAGE_LENGTH = 128 * 1024 * 1024  # 128 MB
+
+channel_options = [
+    ("grpc.max_send_message_length", MAX_MESSAGE_LENGTH),
+    ("grpc.max_receive_message_length", MAX_MESSAGE_LENGTH),
+]
+
 
 class Client:
     """
@@ -53,7 +60,7 @@ class Client:
 
     def connect(self) -> "Client":
         """Establishes gRPC channel and client stub."""
-        self._channel = grpc.insecure_channel(self._server_addr)
+        self._channel = grpc.insecure_channel(self._server_addr, options=channel_options)
         self._stub = ServerStub(self._channel)
         return self
 

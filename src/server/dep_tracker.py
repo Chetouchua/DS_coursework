@@ -1,24 +1,25 @@
 import asyncio
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, List, Literal, Optional, Tuple
-from src.generated.ps_pb2 import StatusCode, TaskId, Values
+from src.generated.ps_pb2 import TaskId, Values
 
 
 @dataclass
 class ServerTask:
     task_id: TaskId
     operation: Literal["push", "pull"]
-    status: Literal["unprocessed", "processing", "success", "failed"]
+    status: Literal["unprocessed", "processing", "success", "failed"] = "unprocessed"
     async_task: Optional[asyncio.Task] = None
     failure_message: str = ""
     result_values: Optional[Values] = None
+    done_event: asyncio.Event = field(default_factory=asyncio.Event)
 
 
 class DependencyTracker:
     def __init__(self):
         # Maps (worker_id, task_id) -> ServerTask
         self.tasks: Dict[Tuple[int, int], ServerTask] = {}
-        self._cond = asyncio.Condition()
+        self._lock = asyncio.Lock()
 
     def get_task(self, worker_id: int, task_id: int) -> Optional[ServerTask]:
         return self.tasks.get((worker_id, task_id))
@@ -27,7 +28,24 @@ class DependencyTracker:
         key = (server_task.task_id.worker_id, server_task.task_id.task_id)
         self.tasks[key] = server_task
 
-    async def wait_for_deps(self, deps: List[TaskId]) -> Tuple[bool, str]:
+    def mark_success(self, worker_id: int, task_id: int, values: Optional[Values] = None) -> None:
+        key = (worker_id, task_id)
+        task = self.tasks.get(key)
+        if task:
+            task.status = "success"
+            if values is not None:
+                task.result_values = values
+            task.done_event.set()
+
+    def mark_failed(self, worker_id: int, task_id: int, err: str) -> None:
+        key = (worker_id, task_id)
+        task = self.tasks.get(key)
+        if task:
+            task.status = "failed"
+            task.failure_message = err
+            task.done_event.set()
+
+    async def wait_for_deps(self, deps: List[TaskId], timeout_sec: float = 10.0) -> Tuple[bool, str]:
         """Part A3: Blocks until all antecedent tasks complete.
         Returns (success: bool, error_message: str)
         """
@@ -38,22 +56,23 @@ class DependencyTracker:
             dep_key = (dep.worker_id, dep.task_id)
             dep_task = self.tasks.get(dep_key)
 
-            if not dep_task or not dep_task.async_task:
-                return False, f"Dependency ({dep.worker_id}, {dep.task_id}) does not exist."
+            # Wait briefly if registration is slightly delayed by network interleaving
+            retries = 50
+            while dep_task is None and retries > 0:
+                await asyncio.sleep(0.01)
+                dep_task = self.tasks.get(dep_key)
+                retries -= 1
 
-            # Await completion of the antecedent asyncio task
-            await dep_task.async_task
+            if not dep_task:
+                return False, f"Dependency worker={dep.worker_id} task={dep.task_id} not found."
+
+            # Wait for task completion via Event
+            try:
+                await asyncio.wait_for(dep_task.done_event.wait(), timeout=timeout_sec)
+            except asyncio.TimeoutError:
+                return False, f"Dependency worker={dep.worker_id} task={dep.task_id} timed out."
 
             if dep_task.status == "failed":
-                # Section 5.2 error requirement
-                return False, "DEPENDENCY_FAILED"
+                return False, f"DEPENDENCY_FAILED: {dep_task.failure_message}"
 
         return True, ""
-
-    async def mark_done(self, worker_id: int, task_id: int, success: bool, msg: str = "") -> None:
-        async with self._cond:
-            key = (worker_id, task_id)
-            if key in self.tasks:
-                self.tasks[key].status = "success" if success else "failed"
-                self.tasks[key].failure_message = msg
-            self._cond.notify_all()
