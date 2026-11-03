@@ -42,8 +42,7 @@ class MachineLearning:
         return sorted(random.sample(list(range(num_keys)), keys_per_iter)) ## uses random sampling but we need zipf and other things refer document
 
     def get_random_dense(self, num_keys, keys_per_iter):
-        begin = random.choice(list(range(num_keys-keys_per_iter)))
+        begin = random.randrange(num_keys - keys_per_iter + 1)
         end = begin + keys_per_iter
         keys = Range(begin=begin, end=end)
         return keys
-    
