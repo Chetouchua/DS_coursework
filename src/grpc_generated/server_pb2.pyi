@@ -23,10 +23,12 @@ class Range(_message.Message):
     def __init__(self, begin: _Optional[int] = ..., end: _Optional[int] = ...) -> None: ...
 
 class KeyList(_message.Message):
-    __slots__ = ("keys",)
+    __slots__ = ("keys", "key_hash")
     KEYS_FIELD_NUMBER: _ClassVar[int]
+    KEY_HASH_FIELD_NUMBER: _ClassVar[int]
     keys: _containers.RepeatedScalarFieldContainer[int]
-    def __init__(self, keys: _Optional[_Iterable[int]] = ...) -> None: ...
+    key_hash: bytes
+    def __init__(self, keys: _Optional[_Iterable[int]] = ..., key_hash: _Optional[bytes] = ...) -> None: ...
 
 class Values(_message.Message):
     __slots__ = ("keys", "data", "width")

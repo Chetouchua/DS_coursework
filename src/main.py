@@ -70,7 +70,13 @@ def yaml_processor(path) -> ExperimentConfig:
 ## Subprocess launcher (needs to be made compatible with all required features)
 def process_launcher(config: ExperimentConfig):
     ## launch server
-    p = subprocess.Popen(["python", "src/server.py", "--num-keys", str(config.model.num_keys), "--value-width", str(config.model.value_width), "--seed", str(config.seed), "--learning-rate", str(config.model.learning_rate)])
+    p = subprocess.Popen([
+        sys.executable, "src/server.py", 
+        "--num-keys", str(config.model.num_keys), 
+        "--value-width", str(config.model.value_width), 
+        "--seed", str(config.seed), 
+        "--learning-rate", str(config.model.learning_rate)
+    ])
 
     ## waiting for server to go live
     time.sleep(0.25)
@@ -95,7 +101,25 @@ def process_launcher(config: ExperimentConfig):
     clients = []
     for i in range(int(config.workers.count)):
         ## seed needs to be different on each worker but deterministically
-        c = subprocess.Popen(["python", "src/client_ver2.py", "--num-keys", str(config.model.num_keys), "--value-width", str(config.model.value_width), "--seed", str(config.seed+i), "--mode", str(config.access.mode), "--keys-per-iter", str(config.access.keys_per_iter), "--iterations", str(config.workers.iterations), "--target-weight-file", file_name, "--gradient-type", config.gradient.type, "--gradient-noise", str(config.gradient.noise_std)])
+        if i % 2 == 0:
+            ## evenly trying workers with both dense and sparse
+            key_type = "dense"
+        else:
+            key_type = "sparse"
+        c = subprocess.Popen([
+            sys.executable, "src/client_ver2.py", 
+            "--worker-id", str(i+1), 
+            "--num-keys", str(config.model.num_keys), 
+            "--value-width", str(config.model.value_width), 
+            "--seed", str(config.seed+i), 
+            "--mode", str(config.access.mode), 
+            "--keys-per-iter", str(config.access.keys_per_iter), 
+            "--iterations", str(config.workers.iterations), 
+            "--target-weight-file", file_name, 
+            "--gradient-type", config.gradient.type, 
+            "--gradient-noise", str(config.gradient.noise_std), 
+            "--keys-request-type", key_type
+        ])
         clients.append(c)
 
     try:

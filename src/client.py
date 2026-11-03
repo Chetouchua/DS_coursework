@@ -5,7 +5,7 @@ import asyncio
 import argparse
 import random
 #older version: from client_library.interface import WokerInterface
-from client_library.interface_ver2 import WorkerInterface
+from client_library.interface import WorkerInterface
 import numpy as np
 
 ## ML work in separate class

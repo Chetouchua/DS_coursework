@@ -6,7 +6,6 @@ import asyncio
 from collections import defaultdict
 from dataclasses import dataclass
 import random
-import time
 from typing import List, Literal, Optional
 import numpy as np
 import grpc
@@ -45,6 +44,13 @@ class ServerServicer(ServerServicer):
     async def Pull(self, request: PullRequest, context) -> Task:
         target_type = request.WhichOneof("target")
 
+        if target_type == 'k' and not request.k.keys and request.k.key_hash:
+            cached_keys = self.key_cache.get(request.k.key_hash)
+            if cached_keys is None:
+                await context.abort(grpc.StatusCode.INVALID_ARGUMENT,
+                                    "Unknown cached key hash.")
+            request.k.CopyFrom(cached_keys)
+
         if target_type == 'r' and not self._validate_range(request.r):
             await context.abort(
                 grpc.StatusCode.INVALID_ARGUMENT,
@@ -55,13 +61,8 @@ class ServerServicer(ServerServicer):
                 grpc.StatusCode.INVALID_ARGUMENT,
                 "Invalid key list"
             )
-            #hash caching
-            if request.key_hash:
-                self.key_cache[request.key_hash] = request.k
-        elif target_type == 'cached_key_hash':
-            if request.cached_key_hash not in self.key_cache:
-                await context.abort(grpc.StatusCode.INVALID_ARGUMENT, 
-                                    "Unknown cached key hash.")
+        if target_type == 'k' and request.k.key_hash:
+            self.key_cache[request.k.key_hash] = request.k
         if target_type is None:
             await context.abort(
                 grpc.StatusCode.INVALID_ARGUMENT,
@@ -81,6 +82,13 @@ class ServerServicer(ServerServicer):
 
     async def Push(self, request: PushRequest, context) -> Task:
         target_type = request.WhichOneof("target")
+
+        if target_type == 'k' and not request.k.keys and request.k.key_hash:
+            cached_keys = self.key_cache.get(request.k.key_hash)
+            if cached_keys is None:
+                await context.abort(grpc.StatusCode.INVALID_ARGUMENT,
+                                    "Unknown cached key hash.")
+            request.k.CopyFrom(cached_keys)
 
         if target_type == 'r':
             if not self._validate_range(request.r):
@@ -104,14 +112,8 @@ class ServerServicer(ServerServicer):
                     grpc.StatusCode.INVALID_ARGUMENT,
                     "Invalid gradient array length"
                 )
-        elif target_type == 'cached_key_hash':
-            if request.cached_key_hash not in self.key_cache:
-                await context.abort(grpc.StatusCode.INVALID_ARGUMENT,
-                                    "Unknown cached key hash.")
-            cached_keys = self.key_cache[request.cached_key_hash]
-            if len(request.values) != len(cached_keys.keys) * self.value_width:
-                await context.aort(grpc.StatusCode.INVALID_ARGUMENT,
-                                   "Invalid Range and/or Keylist.")
+        if target_type == 'k' and request.k.key_hash:
+            self.key_cache[request.k.key_hash] = request.k
         if target_type is None:
             await context.abort(
                 grpc.StatusCode.INVALID_ARGUMENT,
