@@ -24,7 +24,7 @@ class ServerUnavailableError(PSError):...
 class Handle:
     #Returned by push/pull. Pass it in deps=[...] or await handle.result().
     def __init__(self, client: "WorkerInterface", task: Task, kind: str):
-        self._client, self.task, self.kind, self._n = client, task, kind
+        self._client, self.task, self.kind = client, task, kind
         self._cache = None 
 
     @property
