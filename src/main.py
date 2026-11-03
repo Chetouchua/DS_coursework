@@ -101,11 +101,6 @@ def process_launcher(config: ExperimentConfig):
     clients = []
     for i in range(int(config.workers.count)):
         ## seed needs to be different on each worker but deterministically
-        if i % 2 == 0:
-            ## evenly trying workers with both dense and sparse
-            key_type = "dense"
-        else:
-            key_type = "sparse"
         c = subprocess.Popen([
             sys.executable, "src/client_ver2.py", 
             "--worker-id", str(i+1), 
@@ -117,8 +112,7 @@ def process_launcher(config: ExperimentConfig):
             "--iterations", str(config.workers.iterations), 
             "--target-weight-file", file_name, 
             "--gradient-type", config.gradient.type, 
-            "--gradient-noise", str(config.gradient.noise_std), 
-            "--keys-request-type", key_type
+            "--gradient-noise", str(config.gradient.noise_std)
         ])
         clients.append(c)
 

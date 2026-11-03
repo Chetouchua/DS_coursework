@@ -24,7 +24,6 @@ if __name__ == "__main__":
     parser.add_argument("--value-width", required=True, type=int)
     parser.add_argument("--iterations", required=True, type=int)
     parser.add_argument("--keys-per-iter", required=True, type=int)
-    parser.add_argument("--keys-request-type", required=True, type=str)
     parser.add_argument("--target-weight-file", required=True, type=str)
     parser.add_argument("--gradient-type", required=True, type=str)
     parser.add_argument("--gradient-noise", required=False, type=float, default=0.0)
@@ -33,5 +32,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.seed:
         random.seed(args.seed)
-    ml = MachineLearning(args.target_weight_file, args.gradient_type, args.gradient_noise, args.keys_request_type, args.num_keys, args.keys_per_iter, args.seed)
+    ml = MachineLearning(args.target_weight_file, args.gradient_type, args.gradient_noise, args.mode, args.num_keys, args.keys_per_iter, args.seed)
     asyncio.run(runtraining(ml))
