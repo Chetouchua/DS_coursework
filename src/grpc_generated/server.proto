@@ -21,6 +21,8 @@ message Range {
 }
 message KeyList {
     repeated uint64 keys = 1;
+    // Send keys + hash to register a list; send only the hash to reuse it.
+    bytes key_hash = 2;
 }
 
 // Push result
@@ -43,10 +45,8 @@ message PullRequest {
     oneof target {
         Range r = 2;
         KeyList k = 3;
-        bytes cached_key_hash = 4;
     }
-    bytes key_hash = 5;
-    CallOptions opts = 6;
+    CallOptions opts = 4;
 }
 
 message PushRequest {
@@ -54,11 +54,9 @@ message PushRequest {
     oneof target {
         Range r = 2;
         KeyList k = 3;
-        bytes cached_key_hash = 4;
     }
-    bytes key_hash = 5;
-    repeated double values = 6;
-    CallOptions opts = 7;
+    repeated double values = 4;
+    CallOptions opts = 5;
 }
 
 message WaitRequest {

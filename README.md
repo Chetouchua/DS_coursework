@@ -6,9 +6,11 @@ All code within `src/` and running yaml in `experiments`
 
 ### Run Instructions
 
+Use the python version mentioned in requirements.txt , setup and environment and install the requirements.
+
 Each experiment is in `experiments/` simply run for example:
 ```bash
-python src/main.py experiments/simple.yaml
+python src/main.py experiments/simple.yaml ## NOTE you NEED to CTRL+C to end after the printing stops, this is as iterations are not being tracked properly currently
 ```
 Ideally retain this path so the data folder in project root can be used to store the target weight file.
 

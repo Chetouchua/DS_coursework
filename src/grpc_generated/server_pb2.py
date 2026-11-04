@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1bgrpc_generated/server.proto\"(\n\x04Task\x12\x10\n\x08workerId\x18\x01 \x01(\x04\x12\x0e\n\x06taskId\x18\x02 \x01(\x04\"#\n\x05Range\x12\r\n\x05\x62\x65gin\x18\x01 \x01(\x04\x12\x0b\n\x03\x65nd\x18\x02 \x01(\x04\"\x17\n\x07KeyList\x12\x0c\n\x04keys\x18\x01 \x03(\x04\"=\n\x06Values\x12\x16\n\x04keys\x18\x01 \x01(\x0b\x32\x08.KeyList\x12\x0c\n\x04\x64\x61ta\x18\x02 \x03(\x01\x12\r\n\x05width\x18\x03 \x01(\x04\"J\n\x0b\x43\x61llOptions\x12\x13\n\x04\x64\x65ps\x18\x01 \x03(\x0b\x32\x05.Task\x12\x11\n\titeration\x18\x02 \x01(\x04\x12\x13\n\x0b\x63onsistency\x18\x03 \x01(\t\"q\n\x0bPullRequest\x12\x10\n\x08workerId\x18\x01 \x01(\x04\x12\x13\n\x01r\x18\x02 \x01(\x0b\x32\x06.RangeH\x00\x12\x15\n\x01k\x18\x03 \x01(\x0b\x32\x08.KeyListH\x00\x12\x1a\n\x04opts\x18\x04 \x01(\x0b\x32\x0c.CallOptionsB\x08\n\x06target\"\x81\x01\n\x0bPushRequest\x12\x10\n\x08workerId\x18\x01 \x01(\x04\x12\x13\n\x01r\x18\x02 \x01(\x0b\x32\x06.RangeH\x00\x12\x15\n\x01k\x18\x03 \x01(\x0b\x32\x08.KeyListH\x00\x12\x0e\n\x06values\x18\x04 \x03(\x01\x12\x1a\n\x04opts\x18\x05 \x01(\x0b\x32\x0c.CallOptionsB\x08\n\x06target\"6\n\x0bWaitRequest\x12\x13\n\x04task\x18\x01 \x01(\x0b\x32\x05.Task\x12\x12\n\ntimeout_ms\x18\x02 \x01(\x04\")\n\x06Result\x12\x12\n\x01v\x18\x01 \x01(\x0b\x32\x07.Values\x12\x0b\n\x03\x61\x63k\x18\x02 \x01(\x08\x32g\n\x06Server\x12\x1d\n\x04Push\x12\x0c.PushRequest\x1a\x05.Task\"\x00\x12\x1d\n\x04Pull\x12\x0c.PullRequest\x1a\x05.Task\"\x00\x12\x1f\n\x04Wait\x12\x0c.WaitRequest\x1a\x07.Result\"\x00\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1bgrpc_generated/server.proto\"(\n\x04Task\x12\x10\n\x08workerId\x18\x01 \x01(\x04\x12\x0e\n\x06taskId\x18\x02 \x01(\x04\"#\n\x05Range\x12\r\n\x05\x62\x65gin\x18\x01 \x01(\x04\x12\x0b\n\x03\x65nd\x18\x02 \x01(\x04\")\n\x07KeyList\x12\x0c\n\x04keys\x18\x01 \x03(\x04\x12\x10\n\x08key_hash\x18\x02 \x01(\x0c\"=\n\x06Values\x12\x16\n\x04keys\x18\x01 \x01(\x0b\x32\x08.KeyList\x12\x0c\n\x04\x64\x61ta\x18\x02 \x03(\x01\x12\r\n\x05width\x18\x03 \x01(\x04\"J\n\x0b\x43\x61llOptions\x12\x13\n\x04\x64\x65ps\x18\x01 \x03(\x0b\x32\x05.Task\x12\x11\n\titeration\x18\x02 \x01(\x04\x12\x13\n\x0b\x63onsistency\x18\x03 \x01(\t\"q\n\x0bPullRequest\x12\x10\n\x08workerId\x18\x01 \x01(\x04\x12\x13\n\x01r\x18\x02 \x01(\x0b\x32\x06.RangeH\x00\x12\x15\n\x01k\x18\x03 \x01(\x0b\x32\x08.KeyListH\x00\x12\x1a\n\x04opts\x18\x04 \x01(\x0b\x32\x0c.CallOptionsB\x08\n\x06target\"\x81\x01\n\x0bPushRequest\x12\x10\n\x08workerId\x18\x01 \x01(\x04\x12\x13\n\x01r\x18\x02 \x01(\x0b\x32\x06.RangeH\x00\x12\x15\n\x01k\x18\x03 \x01(\x0b\x32\x08.KeyListH\x00\x12\x0e\n\x06values\x18\x04 \x03(\x01\x12\x1a\n\x04opts\x18\x05 \x01(\x0b\x32\x0c.CallOptionsB\x08\n\x06target\"6\n\x0bWaitRequest\x12\x13\n\x04task\x18\x01 \x01(\x0b\x32\x05.Task\x12\x12\n\ntimeout_ms\x18\x02 \x01(\x04\")\n\x06Result\x12\x12\n\x01v\x18\x01 \x01(\x0b\x32\x07.Values\x12\x0b\n\x03\x61\x63k\x18\x02 \x01(\x08\x32g\n\x06Server\x12\x1d\n\x04Push\x12\x0c.PushRequest\x1a\x05.Task\"\x00\x12\x1d\n\x04Pull\x12\x0c.PullRequest\x1a\x05.Task\"\x00\x12\x1f\n\x04Wait\x12\x0c.WaitRequest\x1a\x07.Result\"\x00\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -36,19 +36,19 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_RANGE']._serialized_start=73
   _globals['_RANGE']._serialized_end=108
   _globals['_KEYLIST']._serialized_start=110
-  _globals['_KEYLIST']._serialized_end=133
-  _globals['_VALUES']._serialized_start=135
-  _globals['_VALUES']._serialized_end=196
-  _globals['_CALLOPTIONS']._serialized_start=198
-  _globals['_CALLOPTIONS']._serialized_end=272
-  _globals['_PULLREQUEST']._serialized_start=274
-  _globals['_PULLREQUEST']._serialized_end=387
-  _globals['_PUSHREQUEST']._serialized_start=390
-  _globals['_PUSHREQUEST']._serialized_end=519
-  _globals['_WAITREQUEST']._serialized_start=521
-  _globals['_WAITREQUEST']._serialized_end=575
-  _globals['_RESULT']._serialized_start=577
-  _globals['_RESULT']._serialized_end=618
-  _globals['_SERVER']._serialized_start=620
-  _globals['_SERVER']._serialized_end=723
+  _globals['_KEYLIST']._serialized_end=151
+  _globals['_VALUES']._serialized_start=153
+  _globals['_VALUES']._serialized_end=214
+  _globals['_CALLOPTIONS']._serialized_start=216
+  _globals['_CALLOPTIONS']._serialized_end=290
+  _globals['_PULLREQUEST']._serialized_start=292
+  _globals['_PULLREQUEST']._serialized_end=405
+  _globals['_PUSHREQUEST']._serialized_start=408
+  _globals['_PUSHREQUEST']._serialized_end=537
+  _globals['_WAITREQUEST']._serialized_start=539
+  _globals['_WAITREQUEST']._serialized_end=593
+  _globals['_RESULT']._serialized_start=595
+  _globals['_RESULT']._serialized_end=636
+  _globals['_SERVER']._serialized_start=638
+  _globals['_SERVER']._serialized_end=741
 # @@protoc_insertion_point(module_scope)

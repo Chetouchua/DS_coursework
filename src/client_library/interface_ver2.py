@@ -1,16 +1,16 @@
 #Maybe it would work better on A2 task?
 import logging
-from typing import Iterable, List, Optional, Union, Any
+from typing import Iterable, List, Optional, Union
 import grpc 
 import numpy as np
 import hashlib 
 from grpc_generated.server_pb2 import (
-    CallOptions, KeyList, PullRequest, PushRequest, Range, Task, WaitRequest)
+    CallOptions, KeyList, PullRequest, PushRequest, Range, Result, Task, Values, WaitRequest)
 from grpc_generated.server_pb2_grpc import ServerStub 
 
 log = logging.getLogger(__name__)
 
-KeysLike = Union[range, slice, List[int], np.ndarray]
+KeysLike = Union[Range, List[int]]
 
 class PSError(Exception):
     """Base class for all errors raised by this library"""
@@ -23,28 +23,24 @@ class ServerUnavailableError(PSError):...
 
 class Handle:
     #Returned by push/pull. Pass it in deps=[...] or await handle.result().
-    def __init__(self, client: "WorkerInterface", task: Task, kind: str, n_keys: int):
-        self._client, self,task, self.kind, self._n = client, task, kind, n_keys
+    def __init__(self, client: "WorkerInterface", task: Task, kind: str):
+        self._client, self.task, self.kind = client, task, kind
         self._cache = None 
 
     @property
     def ts(self) -> int:
         return self.task.taskId
 
-    async def wait(self, timeout_ms: int = 0) -> None:
-        await self._client.wait(self, timeout_ms)
-
-    async def result(self, timeout_ms: int = 0) -> Optional[np.ndarray]:
-        #For a pull: the weights as an (n_keys, width) array. For a push: None.
+    async def wait(self, timeout_ms: int = 0) -> Result:
+        """Wait for completion and return the full result, including its ack."""
         if self._cache is None:
-            res = await self._client.wait(self, timeout_ms)
-            if self.kind == "pull":
-                v = res.v
-                arr = np.asanyarray(v.data, dtype=np.float64)
-                self._cache = arr.reshape((self._n, v.width)) if v.width > 0 else arr
-            else:
-                self._cache = False
-        return None if self._cache is False else self._cache
+            self._cache = await self._client.wait(self, timeout_ms)
+        return self._cache
+
+    async def result(self, timeout_ms: int = 0) -> Optional[Values]:
+        """For pulls, return protobuf Values (keys.keys, data, width); for pushes, None."""
+        res = await self.wait(timeout_ms)
+        return res.v if self.kind == "pull" else None
 
 
 class WorkerInterface:
@@ -57,14 +53,10 @@ class WorkerInterface:
         self._agree_key_cache = set()
 
     def _target(self, keys: KeysLike):
-            if isinstance(keys, range) and keys.step == 1:
-                if len(keys) == 0:
-                    raise InvalidRequestError("empty key range")
-                return {"r": Range(begin=keys.start, end=keys.stop)}, len(keys)
-            if isinstance(keys, slice):
-                if keys.start is None or keys.stop is None or keys.step not in (None, 1):
-                    raise InvalidRequestError("slice needs explicit start and stop, step 1")
-                return {"r": Range(begin=keys.start, end=keys.stop)}, keys.stop - keys.start
+            if isinstance(keys, Range):
+                if keys.end <= keys.begin:
+                    raise InvalidRequestError("empty or reversed key range")
+                return {"r": keys}
             arr = np.asarray(keys, dtype=np.uint64)
             if arr.size == 0:
                 raise InvalidRequestError("empty key list")
@@ -77,11 +69,10 @@ class WorkerInterface:
             key_bytes = arr.tobytes()
             key_hash = hashlib.blake2b(key_bytes, digest_size=8).digest()
             if key_hash in self._agree_key_cache:
-                return {"cached_key_hash": key_hash}, int(arr.size)
+                return {"k": KeyList(key_hash=key_hash)}
     
             else:
-                self._agree_key_cache.add(key_hash)
-                return {"k": KeyList(keys=arr.tolist()), "key_hash": key_hash}, int(arr.size)
+                return {"k": KeyList(keys=arr.tolist(), key_hash=key_hash)}
 
     async def close(self) -> None:
         if self._channel is not None:
@@ -93,27 +84,27 @@ class WorkerInterface:
 
     #Pulic API
     async def pull(self, keys: KeysLike, deps:Iterable = ()) -> Handle:
-        target, n = self._target(keys)
+        target = self._target(keys)
         req = PullRequest(workerId=self.worker_id, opts=self._opts(deps), **target)
         
-        return await self._submit(self._stub.Pull, req, "pull", n)
+        return await self._submit(self._stub.Pull, req, "pull")
 
     async def push(self, keys: KeysLike, grads, deps: Iterable = ()) -> Handle:
-        target, n = self._target(keys)
+        target = self._target(keys)
         g = np.asarray(grads, dtype=np.float64)
         
         req = PushRequest(workerId=self.worker_id, values=g.ravel().tolist(),
                           opts=self._opts(deps), **target)
         
-        return await self._submit(self._stub.Push, req, "push", n)
+        return await self._submit(self._stub.Push, req, "push")
 
     async def connect(self):
         self._channel = grpc.aio.insecure_channel(self._addr)
         self._stub = ServerStub(self._channel)
         return self 
 
-    async def wait(self, handle: "Handle", timeout_ms: int=0) -> Any:
-        req = WaitRequest(taskId=handle.ts)
+    async def wait(self, handle: "Handle", timeout_ms: int=0) -> Result:
+        req = WaitRequest(task=handle.task, timeout_ms=timeout_ms)
         try:
             timeout = timeout_ms / 1000.0 if timeout_ms > 0 else None
             res = await self._stub.Wait(req, timeout = timeout)
@@ -127,9 +118,14 @@ class WorkerInterface:
             await h.wait()
 
     #internals
-    async def _submit(self, rpc, req, kind, n) -> Handle:
-        task = await rpc(req)
-        h = Handle(self, task, kind, n)
+    async def _submit(self, rpc, req, kind) -> Handle:
+        try:
+            task = await rpc(req)
+        except grpc.aio.AioRpcError as e:
+            raise self._translate(e) from e
+        if req.WhichOneof("target") == "k" and req.k.key_hash:
+            self._agree_key_cache.add(req.k.key_hash)
+        h = Handle(self, task, kind)
         self._handles.append(h)
         return h 
 
